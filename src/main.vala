@@ -1,6 +1,88 @@
 using Gtk;
 using GLib;
 
+public enum StatusState {
+    IDLE,
+    LOADING,
+    ERROR
+}
+
+public class StatusStateWidget : Box {
+    private Image icon;
+    private Spinner spinner;
+    private Label title_label;
+    private Label message_label;
+
+    public StatusStateWidget() {
+        Object(orientation: Orientation.VERTICAL, spacing: 6);
+
+        margin_top = 12;
+        margin_bottom = 12;
+        margin_start = 12;
+        margin_end = 12;
+        halign = Align.FILL;
+        valign = Align.START;
+
+        icon = new Image.from_icon_name("dialog-information-symbolic");
+        icon.halign = Align.START;
+
+        spinner = new Spinner();
+        spinner.halign = Align.START;
+        spinner.visible = false;
+
+        title_label = new Label("");
+        title_label.halign = Align.START;
+        title_label.add_css_class("heading");
+
+        message_label = new Label("");
+        message_label.halign = Align.START;
+        message_label.wrap = true;
+        message_label.xalign = 0.0f;
+
+        append(icon);
+        append(spinner);
+        append(title_label);
+        append(message_label);
+
+        set_state(StatusState.IDLE);
+    }
+
+    public void set_state(StatusState state) {
+        remove_css_class("error");
+
+        // Все визуальные настройки состояния собраны в одном месте.
+        // Если позже появятся новые состояния или другие тексты/иконки,
+        // удобнее менять их именно здесь.
+        switch (state) {
+        case StatusState.IDLE:
+            icon.icon_name = "dialog-information-symbolic";
+            icon.visible = true;
+            spinner.stop();
+            spinner.visible = false;
+            title_label.label = "Ожидание";
+            message_label.label = "Сейчас ничего не происходит.";
+            break;
+        case StatusState.LOADING:
+            icon.icon_name = "content-loading-symbolic";
+            icon.visible = false;
+            spinner.visible = true;
+            spinner.start();
+            title_label.label = "Загрузка";
+            message_label.label = "Выполняется операция, пожалуйста подождите.";
+            break;
+        case StatusState.ERROR:
+            icon.icon_name = "dialog-error-symbolic";
+            icon.visible = true;
+            spinner.stop();
+            spinner.visible = false;
+            title_label.label = "Ошибка";
+            message_label.label = "Последняя операция завершилась ошибкой.";
+            add_css_class("error");
+            break;
+        }
+    }
+}
+
 public class MainWindow : ApplicationWindow {
     private Entry name_entry;
     private TextView description_view;
@@ -9,6 +91,8 @@ public class MainWindow : ApplicationWindow {
     private Button save_button;
     private Button clear_button;
     private Button exit_button;
+    private StatusStateWidget status_widget;
+    private bool save_in_progress = false;
 
     public MainWindow(Gtk.Application app) {
         Object(
@@ -27,6 +111,9 @@ public class MainWindow : ApplicationWindow {
         var title_label = new Label("Пример GUI на Vala + GTK4");
         title_label.halign = Align.START;
         main_box.append(title_label);
+
+        status_widget = new StatusStateWidget();
+        main_box.append(status_widget);
 
         var name_label = new Label("Имя:");
         name_label.halign = Align.START;
@@ -97,23 +184,78 @@ public class MainWindow : ApplicationWindow {
     }
 
     private void on_name_changed() {
-        // Пустая функция-заглушка
+        // Изменение полей не считается ошибкой само по себе.
+        // Если пользователь начал исправлять форму после ошибки,
+        // возвращаем интерфейс в нейтральное состояние.
+        if (!save_in_progress) {
+            status_widget.set_state(StatusState.IDLE);
+        }
     }
 
     private void on_enable_toggled() {
-        // Пустая функция-заглушка
+        if (!save_in_progress) {
+            status_widget.set_state(StatusState.IDLE);
+        }
     }
 
     private void on_category_changed() {
-        // Пустая функция-заглушка
+        // Выбор категории больше не вызывает ошибку напрямую.
+        // Ошибка должна быть следствием действия пользователя,
+        // например попытки сохранить некорректные данные.
+        if (!save_in_progress) {
+            status_widget.set_state(StatusState.IDLE);
+        }
+    }
+
+    private bool has_validation_error() {
+        // Здесь удобно расширять правила валидации:
+        // - минимальная длина имени
+        // - обязательное описание
+        // - запрещенные категории и т.д.
+        return name_entry.text.strip().length == 0;
+    }
+
+    private void finish_save_attempt() {
+        save_in_progress = false;
+
+        if (has_validation_error()) {
+            status_widget.set_state(StatusState.ERROR);
+            return;
+        }
+
+        // В демо-режиме успешное завершение операции возвращает
+        // виджет в спокойное состояние. Здесь можно позже показать
+        // отдельное состояние успеха или уведомление.
+        status_widget.set_state(StatusState.IDLE);
     }
 
     private void on_save_clicked() {
-        // Пустая функция-заглушка
+        if (save_in_progress) {
+            return;
+        }
+
+        save_in_progress = true;
+        status_widget.set_state(StatusState.LOADING);
+
+        // Имитируем реальную операцию: сначала loading, потом результат.
+        // Здесь можно заменить Timeout.add на сетевой запрос, запись в файл
+        // или любую другую асинхронную логику.
+        Timeout.add(1200, () => {
+            finish_save_attempt();
+            return Source.REMOVE;
+        });
     }
 
     private void on_clear_clicked() {
-        // Пустая функция-заглушка
+        name_entry.text = "";
+
+        var buffer = description_view.buffer;
+        buffer.text = "";
+
+        enable_check.active = false;
+        category_combo.set_active(0);
+        save_in_progress = false;
+        status_widget.set_state(StatusState.IDLE);
     }
 
     private void on_exit_clicked() {
