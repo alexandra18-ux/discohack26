@@ -1,2 +1,7 @@
-*.md
 *~
+builddir/
+*.o
+*.c
+*.so
+*.stamp
+*.tmp
