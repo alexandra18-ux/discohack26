@@ -109,11 +109,10 @@ public class MainWindow : ApplicationWindow {
         main_box.margin_end = 12;
 
         var title_label = new Label("Пример GUI на Vala + GTK4");
+        title_label.visible = false;
         title_label.halign = Align.START;
         main_box.append(title_label);
 
-        status_widget = new StatusStateWidget();
-        main_box.append(status_widget);
 
         var name_label = new Label("Имя:");
         name_label.halign = Align.START;
@@ -127,6 +126,9 @@ public class MainWindow : ApplicationWindow {
         main_box.append(name_entry);
 
         var description_label = new Label("Описание:");
+
+        description_label.visible = false;
+
         description_label.halign = Align.START;
         main_box.append(description_label);
 
@@ -136,17 +138,19 @@ public class MainWindow : ApplicationWindow {
         var scrolled = new ScrolledWindow();
         scrolled.set_child(description_view);
         scrolled.set_vexpand(true);
-        main_box.append(scrolled);
+
+        // main_box.append(scrolled);
 
         enable_check = new CheckButton.with_label("Включить опцию");
         enable_check.toggled.connect(() => {
             on_enable_toggled();
         });
-        main_box.append(enable_check);
+        // main_box.append(enable_check);
 
         var category_label = new Label("Категория:");
         category_label.halign = Align.START;
         main_box.append(category_label);
+
 
         category_combo = new ComboBoxText();
         category_combo.append_text("Категория 1");
@@ -157,6 +161,8 @@ public class MainWindow : ApplicationWindow {
             on_category_changed();
         });
         main_box.append(category_combo);
+        status_widget = new StatusStateWidget();
+        main_box.append(status_widget);
 
         var button_box = new Box(Orientation.HORIZONTAL, 6);
 
