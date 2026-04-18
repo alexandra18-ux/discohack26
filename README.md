@@ -22,3 +22,15 @@ sequenceDiagram
     B->>S: Кладём Access token и Refresh token
     B->>F: Присылаем сигнал LoginCompleted
 ```
+
+## Nautilus extension
+
+Проект теперь содержит GNOME Files/Nautilus extension в `nautilus/syncstatus.py`.
+
+Что делает extension:
+- читает `MountPoint` у `ru.literallycats.daemon` по D-Bus;
+- мапит локальные пути из Nautilus в daemon paths вида `disk:/...`;
+- берет статусы через `ListDirectoryStatuses(path)` и `GetSyncStatus(path)`;
+- показывает системные overlay emblems для `synced`, `queued`/`uploading`/`downloading`, `conflict` и `error`.
+
+Локальная документация по установке и ручной проверке: `nautilus/README.md`.
