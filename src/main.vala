@@ -1,88 +1,6 @@
 using Gtk;
 using GLib;
 
-public enum StatusState {
-    IDLE,
-    LOADING,
-    ERROR
-}
-
-public class StatusStateWidget : Box {
-    private Image icon;
-    private Spinner spinner;
-    private Label title_label;
-    private Label message_label;
-
-    public StatusStateWidget() {
-        Object(orientation: Orientation.VERTICAL, spacing: 6);
-
-        margin_top = 12;
-        margin_bottom = 12;
-        margin_start = 12;
-        margin_end = 12;
-        halign = Align.FILL;
-        valign = Align.START;
-
-        icon = new Image.from_icon_name("dialog-information-symbolic");
-        icon.halign = Align.START;
-
-        spinner = new Spinner();
-        spinner.halign = Align.START;
-        spinner.visible = false;
-
-        title_label = new Label("");
-        title_label.halign = Align.START;
-        title_label.add_css_class("heading");
-
-        message_label = new Label("");
-        message_label.halign = Align.START;
-        message_label.wrap = true;
-        message_label.xalign = 0.0f;
-
-        append(icon);
-        append(spinner);
-        append(title_label);
-        append(message_label);
-
-        set_state(StatusState.IDLE);
-    }
-
-    public void set_state(StatusState state) {
-        remove_css_class("error");
-
-        // Все визуальные настройки состояния собраны в одном месте.
-        // Если позже появятся новые состояния или другие тексты/иконки,
-        // удобнее менять их именно здесь.
-        switch (state) {
-        case StatusState.IDLE:
-            icon.icon_name = "dialog-information-symbolic";
-            icon.visible = true;
-            spinner.stop();
-            spinner.visible = false;
-            title_label.label = "Ожидание";
-            message_label.label = "Сейчас ничего не происходит.";
-            break;
-        case StatusState.LOADING:
-            icon.icon_name = "content-loading-symbolic";
-            icon.visible = false;
-            spinner.visible = true;
-            spinner.start();
-            title_label.label = "Загрузка";
-            message_label.label = "Выполняется операция, пожалуйста подождите.";
-            break;
-        case StatusState.ERROR:
-            icon.icon_name = "dialog-error-symbolic";
-            icon.visible = true;
-            spinner.stop();
-            spinner.visible = false;
-            title_label.label = "Ошибка";
-            message_label.label = "Последняя операция завершилась ошибкой.";
-            add_css_class("error");
-            break;
-        }
-    }
-}
-
 public class MainWindow : ApplicationWindow {
     private Entry name_entry;
     private TextView description_view;
@@ -113,7 +31,6 @@ public class MainWindow : ApplicationWindow {
         title_label.halign = Align.START;
         main_box.append(title_label);
 
-
         var name_label = new Label("Имя:");
         name_label.halign = Align.START;
         main_box.append(name_label);
@@ -126,9 +43,7 @@ public class MainWindow : ApplicationWindow {
         main_box.append(name_entry);
 
         var description_label = new Label("Описание:");
-
         description_label.visible = false;
-
         description_label.halign = Align.START;
         main_box.append(description_label);
 
@@ -139,18 +54,14 @@ public class MainWindow : ApplicationWindow {
         scrolled.set_child(description_view);
         scrolled.set_vexpand(true);
 
-        // main_box.append(scrolled);
-
         enable_check = new CheckButton.with_label("Включить опцию");
         enable_check.toggled.connect(() => {
             on_enable_toggled();
         });
-        // main_box.append(enable_check);
 
         var category_label = new Label("Категория:");
         category_label.halign = Align.START;
         main_box.append(category_label);
-
 
         category_combo = new ComboBoxText();
         category_combo.append_text("Категория 1");
@@ -161,6 +72,7 @@ public class MainWindow : ApplicationWindow {
             on_category_changed();
         });
         main_box.append(category_combo);
+
         status_widget = new StatusStateWidget();
         main_box.append(status_widget);
 
@@ -185,14 +97,10 @@ public class MainWindow : ApplicationWindow {
         button_box.append(exit_button);
 
         main_box.append(button_box);
-
         set_child(main_box);
     }
 
     private void on_name_changed() {
-        // Изменение полей не считается ошибкой само по себе.
-        // Если пользователь начал исправлять форму после ошибки,
-        // возвращаем интерфейс в нейтральное состояние.
         if (!save_in_progress) {
             status_widget.set_state(StatusState.IDLE);
         }
@@ -205,19 +113,12 @@ public class MainWindow : ApplicationWindow {
     }
 
     private void on_category_changed() {
-        // Выбор категории больше не вызывает ошибку напрямую.
-        // Ошибка должна быть следствием действия пользователя,
-        // например попытки сохранить некорректные данные.
         if (!save_in_progress) {
             status_widget.set_state(StatusState.IDLE);
         }
     }
 
     private bool has_validation_error() {
-        // Здесь удобно расширять правила валидации:
-        // - минимальная длина имени
-        // - обязательное описание
-        // - запрещенные категории и т.д.
         return name_entry.text.strip().length == 0;
     }
 
@@ -229,9 +130,6 @@ public class MainWindow : ApplicationWindow {
             return;
         }
 
-        // В демо-режиме успешное завершение операции возвращает
-        // виджет в спокойное состояние. Здесь можно позже показать
-        // отдельное состояние успеха или уведомление.
         status_widget.set_state(StatusState.IDLE);
     }
 
@@ -243,9 +141,6 @@ public class MainWindow : ApplicationWindow {
         save_in_progress = true;
         status_widget.set_state(StatusState.LOADING);
 
-        // Имитируем реальную операцию: сначала loading, потом результат.
-        // Здесь можно заменить Timeout.add на сетевой запрос, запись в файл
-        // или любую другую асинхронную логику.
         Timeout.add(1200, () => {
             finish_save_attempt();
             return Source.REMOVE;
